@@ -50,7 +50,7 @@ struct CompiledProvider {
     redirections: Vec<Regex>,
     referral_marketing: Vec<Regex>,
     complete_provider: bool,
-    force_redirection: bool,
+    force_redirection: bool, // We're not doing much with this field because it's dependent on browser usage to actually redirect.
 }
 
 /// Result of URL cleaning operation
@@ -86,11 +86,11 @@ pub struct CleaningOptions {
 impl Default for CleaningOptions {
     fn default() -> Self {
         Self {
-            skip_localhost: true,
-            apply_referral_marketing: true,
-            domain_blocking: true,
-            additional_blocked_params: Vec::new(),
-            blacklisted_domains: Vec::new(),
+            skip_localhost: true,                  // Ignore the local domains
+            apply_referral_marketing: true,        // Strip referral marketing
+            domain_blocking: true,                 // Block certain domains
+            additional_blocked_params: Vec::new(), // Empty extra params
+            blacklisted_domains: Vec::new(),       // Empty blacklist
         }
     }
 }
