@@ -1,42 +1,74 @@
 use anyhow::Result;
-use env_logger;
-use log::info;
+use clap::Parser;
 use plink::{CleaningOptions, UrlCleaner};
 
+/// Simple URL cleaner CLI
+#[derive(Debug, Parser)]
+#[command(
+    name = "plink",
+    about = "Clean URL's by peeling away tracking parameters and other junk"
+)]
+struct Cli {
+    /// Do NOT skip localhost URLs
+    #[arg(long)]
+    no_skip_localhost: bool,
+
+    /// Do NOT apply referral-marketing rules
+    #[arg(long)]
+    no_referral_marketing: bool,
+
+    /// Do NOT enable domain blocking
+    #[arg(long)]
+    no_domain_blocking: bool,
+
+    /// Comma-separated list of blacklisted domains
+    #[arg(long, value_name = "DOMAINS")]
+    blacklist: Option<String>,
+
+    /// Comma-separated list of additional blocked params
+    #[arg(long, value_name = "PARAMS")]
+    additional_params: Option<String>,
+
+    /// One or more URLs to clean
+    #[arg(value_name = "URL", required = true)]
+    urls: Vec<String>,
+}
+
+fn parse_csv(input: Option<&str>) -> Vec<String> {
+    input
+        .map(|s| {
+            s.split(',')
+                .map(|item| item.trim().to_string())
+                .filter(|item| !item.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn main() -> Result<()> {
-    env_logger::init();
+    let cli = Cli::parse();
 
-    // Load configuration (you'd typically load this from a file)
-    let config_json = include_str!("data.json");
-
-    // Configure options
     let options = CleaningOptions {
-        additional_blocked_params: vec![
-            "utm_source".to_string(),
-            "utm_medium".to_string(),
-            "utm_campaign".to_string(),
-            "fbclid".to_string(),
-            "gclid".to_string(),
-        ],
-        blacklisted_domains: vec!["trusted-site.com".to_string()],
-        ..Default::default()
+        skip_localhost: !cli.no_skip_localhost,
+        apply_referral_marketing: !cli.no_referral_marketing,
+        domain_blocking: !cli.no_domain_blocking,
+        additional_blocked_params: parse_csv(cli.additional_params.as_deref()),
+        blacklisted_domains: parse_csv(cli.blacklist.as_deref()),
     };
 
-    // Create cleaner
+    // load the embedded JSON config
+    let config_json = include_str!("data.json");
     let cleaner = UrlCleaner::from_json(config_json, options)?;
 
-    // Clean some URLs
-    let urls = vec![
-        "https://www.amazon.com/dp/exampleProduct/ref=sxin_0_pb?__mk_de_DE=ÅMÅŽÕÑ&keywords=tea&pd_rd_i=exampleProduct&pd_rd_r=8d39e4cd-1e4f-43db-b6e7-72e969a84aa5&pd_rd_w=1pcKM&pd_rd_wg=hYrNl&pf_rd_p=50bbfd25-5ef7-41a2-68d6-74d854b30e30&pf_rd_r=0GMWD0YYKA7XFGX55ADP&qid=1517757263&rnid=2914120011",
-    ];
-
-    for url in urls {
-        let result = cleaner.clean_url(url)?;
-        if result.changed {
-            println!("Cleaned: {} -> {}", url, result.url);
-            println!("Applied rules: {:?}", result.applied_rules);
-        } else {
-            info!("No changes: {}", url);
+    for url in cli.urls {
+        match cleaner.clean_url(&url) {
+            Ok(result) => {
+                // Print the cleaned URL
+                println!("{}", result.url);
+            }
+            Err(e) => {
+                eprintln!("error cleaning {}: {}", url, e);
+            }
         }
     }
 
