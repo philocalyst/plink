@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use log::{debug, info, warn};
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use url::Url;
@@ -217,17 +217,26 @@ impl UrlCleaner {
         let url_pattern = Regex::new(&provider.url_pattern)
             .context(format!("Invalid URL pattern for provider {}", name))?;
 
+        // For rules and raw_rules, I'm doing a bit of a shortcut, because in the original code, it looks like the ^ and $ are added only during the removal, but the full list isn't used in another context, so might as well be added here?
         let rules = provider
             .rules
             .iter()
-            .map(|r| Regex::new(&format!("^{}$", r)))
+            .map(|r| {
+                RegexBuilder::new(&format!("^{}$", r))
+                    .case_insensitive(true)
+                    .build()
+            })
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile rules")?;
 
         let raw_rules = provider
             .raw_rules
             .iter()
-            .map(|r| Regex::new(r))
+            .map(|r| {
+                RegexBuilder::new(&format!("^{}$", r))
+                    .case_insensitive(true)
+                    .build()
+            })
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile raw rules")?;
 
@@ -324,6 +333,18 @@ impl UrlCleaner {
                 cancel: false,
                 applied_rules: vec![format!("{}_redirect", provider.name)],
             });
+        }
+
+        // Apply rules (regex replacements on the entire URL)
+        for (i, raw_rule) in provider.rules.iter().enumerate() {
+            let original = url.to_string();
+            let cleaned = raw_rule.replace_all(&original, "");
+            if cleaned != original {
+                *url = Url::parse(&cleaned).context("Invalid URL after applying raw rule")?;
+                changed = true;
+                applied_rules.push(format!("{}_raw_{}", provider.name, i));
+                debug!("Applied raw rule {} to {}", i, provider.name);
+            }
         }
 
         // Apply raw rules (regex replacements on the entire URL)
