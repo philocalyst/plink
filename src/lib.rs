@@ -158,6 +158,7 @@ impl UrlCleaner {
         // Apply provider-specific rules
         for provider in &self.providers {
             if provider.matches_url(&url)? && !provider.matches_exception(&url)? {
+                applied_rules.push(provider.name.clone());
                 let result = self.apply_provider_rules(provider, &mut url)?;
 
                 if result.redirect {
@@ -170,7 +171,7 @@ impl UrlCleaner {
                         changed: true,
                         redirect: true,
                         cancel: false,
-                        applied_rules: vec![provider.name.clone()],
+                        applied_rules,
                     });
                 }
 
@@ -181,7 +182,7 @@ impl UrlCleaner {
                         changed: false,
                         redirect: false,
                         cancel: true,
-                        applied_rules: vec![provider.name.clone()],
+                        applied_rules,
                     });
                 }
 
@@ -362,7 +363,6 @@ impl UrlCleaner {
         // Apply parameter rules
         if self.apply_parameter_rules(provider, url)? {
             changed = true;
-            applied_rules.push(format!("{}_params", provider.name));
         }
 
         Ok(CleaningResult {
