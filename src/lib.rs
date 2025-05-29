@@ -168,9 +168,12 @@ impl UrlCleaner {
         // Apply provider-specific rules
         for provider in &self.providers {
             if provider.matches_url(&url)? && !provider.matches_exception(&url)? {
+                // Push the matched provider when found
                 applied_rules.push(provider.name.clone());
+
                 let result = self.apply_provider_rules(provider, &mut url)?;
 
+                // Redirect means we're not responsible
                 if result.redirect {
                     info!(
                         "URL {} redirected by provider {}",
@@ -185,6 +188,7 @@ impl UrlCleaner {
                     });
                 }
 
+                // Cancel means we don't need to worry
                 if result.cancel {
                     info!("URL {} blocked by provider {}", original_url, provider.name);
                     return Ok(CleaningResult {
@@ -209,12 +213,14 @@ impl UrlCleaner {
             applied_rules.push("additional_params".to_string());
         }
 
+        // Debug logging
         if changed {
             info!("Cleaned URL: {} -> {}", original_url, url);
         } else {
             debug!("No changes made to URL: {}", url);
         }
 
+        // If not returned early, we can assume this is all correct.
         Ok(CleaningResult {
             url,
             changed,
@@ -224,6 +230,7 @@ impl UrlCleaner {
         })
     }
 
+    /// Parse and compile providers into local regex
     fn compile_provider(name: String, provider: Provider) -> Result<CompiledProvider> {
         let url_pattern = Regex::new(&provider.url_pattern)
             .context(format!("Invalid URL pattern for provider {}", name))?;
@@ -236,6 +243,7 @@ impl UrlCleaner {
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile rules")?;
 
+        // These are the rules that apply to the entire URL
         let raw_rules = provider
             .raw_rules
             .iter()
@@ -243,6 +251,7 @@ impl UrlCleaner {
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile raw rules")?;
 
+        // Get exceptions
         let exceptions = provider
             .exceptions
             .iter()
@@ -250,6 +259,7 @@ impl UrlCleaner {
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile exceptions")?;
 
+        // Get redirects
         let redirections = provider
             .redirections
             .iter()
@@ -257,6 +267,7 @@ impl UrlCleaner {
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile redirections")?;
 
+        // Get referrals
         let referral_marketing = provider
             .referral_marketing
             .iter()
@@ -277,6 +288,7 @@ impl UrlCleaner {
         })
     }
 
+    /// Determine if we should skip a URL
     fn should_skip_url(&self, url: &Url) -> bool {
         // Skip localhost if configured
         if self.options.skip_localhost && self.is_localhost(url) {
@@ -295,6 +307,7 @@ impl UrlCleaner {
         false
     }
 
+    /// Detect if the URL is a common localhost URL
     fn is_localhost(&self, url: &Url) -> bool {
         if let Some(host) = url.host_str() {
             host == "localhost"
@@ -307,6 +320,7 @@ impl UrlCleaner {
         }
     }
 
+    /// Apply the rules of the provider to an input url, brings in helper functions to help
     fn apply_provider_rules(
         &self,
         provider: &CompiledProvider,
@@ -364,6 +378,7 @@ impl UrlCleaner {
         })
     }
 
+    /// Resolve the redirections
     fn apply_redirections(&self, provider: &CompiledProvider, url: &Url) -> Result<Option<Url>> {
         for redirection in &provider.redirections {
             if let Some(captures) = redirection.captures(url.as_str()) {
@@ -379,6 +394,7 @@ impl UrlCleaner {
         Ok(None)
     }
 
+    /// Apply the specific parameter rules (the most complex of them)
     fn apply_parameter_rules(&self, provider: &CompiledProvider, url: &mut Url) -> Result<bool> {
         let mut changed = false;
 
@@ -438,6 +454,7 @@ impl UrlCleaner {
         Ok(changed)
     }
 
+    /// Apply any additional rules that the input specifies
     fn apply_additional_param_rules(&self, url: &mut Url) -> Result<bool> {
         if self.options.additional_blocked_params.is_empty() {
             return Ok(false);
