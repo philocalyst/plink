@@ -135,7 +135,17 @@ impl UrlCleaner {
 
     /// Clean a URL by removing tracking parameters
     pub fn clean_url(&self, url: &str) -> Result<CleaningResult> {
-        let mut url = Url::parse(url).context("Failed to parse URL")?;
+        // We need to make this owned for the base manipulation
+        let mut url = url.to_string();
+
+        // Add the boilerplate if it's not present
+        if !url.contains("https://") {
+            url = format!("https://{}", url);
+        } else if !url.contains("http://") {
+            url = format!("http://{}", url);
+        }
+
+        let mut url = Url::parse(&url).context("Failed to parse URL")?;
 
         debug!("Cleaning URL: {}", url);
 
