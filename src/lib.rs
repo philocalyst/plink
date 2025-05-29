@@ -378,14 +378,17 @@ impl UrlCleaner {
             all_rules.extend(provider.referral_marketing.clone());
         }
 
-        println!("{all_rules:?}");
-
         // Remove matching parameters.
         // We only need the key, because that's what the dataset is based on.
         let params_to_remove: Vec<String> = url
             .query_pairs()
             .filter_map(|(key, _)| {
                 for rule in &all_rules {
+                    // Match verbatim keys
+                    let rule = RegexBuilder::new(&format!("^{}$", rule))
+                        .case_insensitive(true)
+                        .build().expect("We're taking an existing regex and making it only match verbatim, shouldn't fail.");
+
                     if rule.is_match(&key) {
                         debug!(
                             "Parameter '{}' matches rule in provider {}",
