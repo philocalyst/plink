@@ -218,26 +218,18 @@ impl UrlCleaner {
         let url_pattern = Regex::new(&provider.url_pattern)
             .context(format!("Invalid URL pattern for provider {}", name))?;
 
-        // For rules and raw_rules, I'm doing a bit of a shortcut, because in the original code, it looks like the ^ and $ are added only during the removal, but the full list isn't used in another context, so might as well be added here?
+        // Append the rules verbatim
         let rules = provider
             .rules
             .iter()
-            .map(|r| {
-                RegexBuilder::new(&format!("^{}$", r))
-                    .case_insensitive(true)
-                    .build()
-            })
+            .map(|r| Regex::new(r))
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile rules")?;
 
         let raw_rules = provider
             .raw_rules
             .iter()
-            .map(|r| {
-                RegexBuilder::new(&format!("^{}$", r))
-                    .case_insensitive(true)
-                    .build()
-            })
+            .map(|r| Regex::new(r))
             .collect::<Result<Vec<_>, _>>()
             .context("Failed to compile raw rules")?;
 
@@ -336,18 +328,6 @@ impl UrlCleaner {
             });
         }
 
-        // Apply rules (regex replacements on the entire URL)
-        for (i, raw_rule) in provider.rules.iter().enumerate() {
-            let original = url.to_string();
-            let cleaned = raw_rule.replace_all(&original, "");
-            if cleaned != original {
-                *url = Url::parse(&cleaned).context("Invalid URL after applying raw rule")?;
-                changed = true;
-                applied_rules.push(format!("{}_raw_{}", provider.name, i));
-                debug!("Applied raw rule {} to {}", i, provider.name);
-            }
-        }
-
         // Apply raw rules (regex replacements on the entire URL)
         for (i, raw_rule) in provider.raw_rules.iter().enumerate() {
             let original = url.to_string();
@@ -391,7 +371,6 @@ impl UrlCleaner {
 
     fn apply_parameter_rules(&self, provider: &CompiledProvider, url: &mut Url) -> Result<bool> {
         let mut changed = false;
-        let original_query = url.query().unwrap_or("").to_string();
 
         // Collect all rules to apply
         let mut all_rules = provider.rules.clone();
@@ -399,7 +378,10 @@ impl UrlCleaner {
             all_rules.extend(provider.referral_marketing.clone());
         }
 
-        // Remove matching parameters
+        println!("{all_rules:?}");
+
+        // Remove matching parameters.
+        // We only need the key, because that's what the dataset is based on.
         let params_to_remove: Vec<String> = url
             .query_pairs()
             .filter_map(|(key, _)| {
@@ -417,15 +399,18 @@ impl UrlCleaner {
             .collect();
 
         if !params_to_remove.is_empty() {
-            let mut new_params = url
+            // Then we use the key to get the full query to remove on
+            let new_params = url
                 .query_pairs()
                 .filter(|(key, _)| !params_to_remove.contains(&key.to_string()))
                 .collect::<Vec<_>>();
 
             // Rebuild query string
             if new_params.is_empty() {
+                // If we do all of the matching and replacement, and we end up with no params, than the url is free of them.
                 url.set_query(None);
             } else {
+                // Otherwise we're free to rebuild the string, which comes down to replicating the param format as we're rebuilding
                 let query_string = new_params
                     .iter()
                     .map(|(k, v)| format!("{}={}", k, v))
@@ -445,6 +430,7 @@ impl UrlCleaner {
             return Ok(false);
         }
 
+        // Refer to apply_param_rules for notes on this logic
         let params_to_remove: HashSet<String> = self
             .options
             .additional_blocked_params
