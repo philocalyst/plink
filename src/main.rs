@@ -57,8 +57,7 @@ fn main() -> Result<()> {
     };
 
     // load the embedded JSON config
-    let config_json = include_str!("/Users/philocalyst/Projects/plink/src/data.json");
-    let cleaner = UrlCleaner::from_json(config_json, options)?;
+    let cleaner = UrlCleaner::from_data(options)?;
 
     for url in cli.urls {
         match cleaner.clean_url(&url) {

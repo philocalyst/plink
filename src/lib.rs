@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use bitcode;
 use log::{debug, info, warn};
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
@@ -127,10 +128,16 @@ impl UrlCleaner {
     }
 
     /// Load configuration from JSON string
-    pub fn from_json(json: &str, options: CleaningOptions) -> Result<Self> {
-        let config: ClearUrlsConfig =
-            serde_json::from_str(json).context("Failed to parse configuration JSON")?;
-        Self::new(config, options)
+    pub fn from_data(options: CleaningOptions) -> Result<Self> {
+        // Include the compiled bitcode blob
+        let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/data.bin"));
+
+        // Deserialize via bitcode's serde‐integration
+        let config: ClearUrlsConfig = bitcode::deserialize(bytes)?;
+
+        // Build the actual UrlCleaner
+        let cleaner = Self::new(config, options)?;
+        Ok(cleaner)
     }
 
     /// Clean a URL by removing tracking parameters
@@ -139,10 +146,8 @@ impl UrlCleaner {
         let mut url = url.to_string();
 
         // Add the boilerplate if it's not present
-        if !url.contains("https://") {
+        if !url.starts_with("https://") && !url.starts_with("http://") {
             url = format!("https://{}", url);
-        } else if !url.contains("http://") {
-            url = format!("http://{}", url);
         }
 
         let mut url = Url::parse(&url).context("Failed to parse URL")?;
@@ -526,7 +531,7 @@ mod tests {
             }
         }"#;
 
-        let cleaner = UrlCleaner::from_json(config, CleaningOptions::default()).unwrap();
+        let cleaner = UrlCleaner::from_data(CleaningOptions::default()).unwrap();
         let result = cleaner
             .clean_url("https://google.com/search?q=test&utm_source=newsletter")
             .unwrap();
@@ -543,7 +548,7 @@ mod tests {
             ..Default::default()
         };
 
-        let cleaner = UrlCleaner::from_json(config, options).unwrap();
+        let cleaner = UrlCleaner::from_data(options).unwrap();
         let result = cleaner
             .clean_url("https://example.com/?test=1&fbclid=123&gclid=456")
             .unwrap();
