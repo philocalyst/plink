@@ -5,6 +5,26 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.1] – 2025-06-15
+
+### Added
+- Compile‐time serialization of `data.json` into a Bitcode blob (`data.bin`) via a new `build.rs`.
+- Embed the compiled blob at runtime with  
+  `include_bytes!(concat!(env!("OUT_DIR"), "/data.bin"))` and deserialize it using `bitcode::deserialize`.
+- Introduce `UrlCleaner::from_data(options: CleaningOptions)` to construct a cleaner from the embedded configuration.
+- Add `bitcode` (with `serde` feature), `bitcode_derive`, `bytemuck` and `glam` as dependencies, plus `serde` and `serde_json` as build-dependencies.
+
+### Changed
+- Remove JSON parsing at runtime; drop `include_str!("data.json")` and the obsolete `UrlCleaner::from_json` method.
+- Update `src/main.rs`, library code and tests to use `from_data` instead of `from_json`.
+- Move `data.json` from `src/` to the project root so it can be picked up by the build script.
+- Refine URL‐scheme normalization to only prepend `https://` or `http://` when the input does not already start with those prefixes.
+- Ensure embedded data is loaded from the `OUT_DIR` environment variable for greater portability.
+- Bump `Cargo.toml` and `Cargo.lock` to include the new Bitcode-related crates.
+
+### Removed
+- The `UrlCleaner::from_json(&str, CleaningOptions)` constructor.
+
 ## [0.2.0] – 2025-05-29
 
 ### Added
