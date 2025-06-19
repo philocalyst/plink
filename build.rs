@@ -1,5 +1,4 @@
 use bitcode;
-use core::panic;
 use std::{collections::HashMap, env, fs, path::Path};
 
 use serde::{Deserialize, Serialize};
@@ -40,6 +39,9 @@ pub struct Provider {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // The bincode config
+    let config = bincode::config::standard();
+
     // Tell Cargo to re-run build.rs if data.json changes
     println!("cargo:rerun-if-changed=data.json");
 
@@ -47,10 +49,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let json = fs::read_to_string("./data.json")?;
 
     // Deserialize it
-    let config: ClearUrlsConfig = serde_json::from_str(&json).expect("Failed to parse data.json");
+    let url_config: ClearUrlsConfig =
+        serde_json::from_str(&json).expect("Failed to parse data.json");
 
     // Then serialize it into bitcode using serde
-    let output = bitcode::serialize(&config)?;
+    let output = bincode::serde::encode_to_vec(&url_config, config)?;
 
     let out_dir = env::var("OUT_DIR")?;
     let destination = Path::new(&out_dir).join("data.bin");

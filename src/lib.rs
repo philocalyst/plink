@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use bitcode;
+use bincode;
 use log::{debug, info, warn};
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
@@ -97,6 +97,7 @@ impl Default for CleaningOptions {
 }
 
 /// Main URL cleaner that applies rules to sanitize URLs
+#[derive(Debug)]
 pub struct UrlCleaner {
     providers: Vec<CompiledProvider>,
     options: CleaningOptions,
@@ -129,11 +130,14 @@ impl UrlCleaner {
 
     /// Load configuration from JSON string
     pub fn from_data(options: CleaningOptions) -> Result<Self> {
+        // The bincode config
+        let config = bincode::config::standard();
+
         // Include the compiled bitcode blob
         let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/data.bin"));
 
         // Deserialize via bitcode's serde‐integration
-        let config: ClearUrlsConfig = bitcode::deserialize(bytes)?;
+        let (config, _) = bincode::serde::decode_from_slice(&bytes, config)?;
 
         // Build the actual UrlCleaner
         let cleaner = Self::new(config, options)?;
