@@ -5,6 +5,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.2] – 2025-06-19
+
+### Added
+- **Tracing support for debugging**: Added comprehensive tracing infrastructure using the `tracing` and `tracing-subscriber` crates to enable detailed debugging and observability
+  - Instrumented key functions (`from_data`, `clean_url`) with `#[instrument]` attributes
+  - Configured tracing subscriber with TRACE level logging and span events for function entry/exit
+  - Handles edge cases and provides detailed execution flow visibility
+  - Added bincode configuration and encoding/decoding capabilities in build process
+  - Maintains compatibility with existing bitcode serialization
+- **Enhanced debugging capabilities**: Added `Debug` trait implementation for `UrlCleaner` struct to improve development experience
+
+### Changed
+- **Bincode serialization support**: Integrated the `bincode` crate as a replacement serialization option over bitcode (seems quicker, more maintained)
+- **Build process improvements**: Updated build script to use bincode for data serialization while maintaining bitcode compatibility
+- **Dependency updates**: Added new dependencies for tracing (`tracing`, `tracing-subscriber`, `nu-ansi-term`, `once_cell`, `sharded-slab`, `thread_local`) and serialization (`bincode`, `bincode_derive`, `unty`, `virtue`)
+
 ## [0.2.1] – 2025-06-15
 
 ### Added
@@ -70,6 +86,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - Compile-time full-string regex anchoring for `provider.rules`; patterns are now used as-provided
 - The regex-based URL-transformation loop for `provider.rules` (cleaning now relies on `raw_rules` and parameter rules only)
 
-[Unreleased]: https://github.com/yourorg/yourrepo/compare/v0.2.0...HEAD  
+[Unreleased]: https://github.com/yourorg/yourrepo/compare/v0.2.1...HEAD  
+[0.2.1]: https://github.com/yourproject/plink/compare/v0.2.0...v0.2.1
 [0.2.0]:     https://github.com/yourorg/yourrepo/compare/v0.1.0...v0.2.0  
 [0.1.0]: https://github.com/yourorg/yourrepo/compare/...v0.1.0
