@@ -4,6 +4,7 @@ use log::{debug, info, warn};
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
+use tracing::instrument;
 use url::Url;
 
 /// Configuration for URL cleaning rules
@@ -129,6 +130,7 @@ impl UrlCleaner {
     }
 
     /// Load configuration from JSON string
+    #[instrument]
     pub fn from_data(options: CleaningOptions) -> Result<Self> {
         // The bincode config
         let config = bincode::config::standard();
@@ -145,6 +147,7 @@ impl UrlCleaner {
     }
 
     /// Clean a URL by removing tracking parameters
+    #[instrument]
     pub fn clean_url(&self, url: &str) -> Result<CleaningResult> {
         // We need to make this owned for the base manipulation
         let mut url = url.to_string();

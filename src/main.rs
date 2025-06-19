@@ -1,6 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
 use plink::{CleaningOptions, UrlCleaner};
+use tracing::{Level, event, info, span};
+use tracing_subscriber::{FmtSubscriber, fmt::format::FmtSpan};
 
 /// Simple URL cleaner CLI
 #[derive(Debug, Parser)]
@@ -46,6 +48,16 @@ fn parse_csv(input: Option<&str>) -> Vec<String> {
 }
 
 fn main() -> Result<()> {
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::TRACE)
+        .with_span_events(
+            FmtSpan::ENTER // when you enter()
+                         | FmtSpan::CLOSE, // when guard is dropped
+        )
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set global subscriber");
+
     let cli = Cli::parse();
 
     let options = CleaningOptions {
