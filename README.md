@@ -109,9 +109,9 @@ cargo install plink
 
 ### As a library
 
-```toml
+```diff
 [dependencies]
-plink = "0.2.2"
++ plink = "0.2.3"
 ```
 
 ---
