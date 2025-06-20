@@ -1,8 +1,6 @@
-use bitcode;
 use std::{collections::HashMap, env, fs, path::Path};
 
 use serde::{Deserialize, Serialize};
-use serde_json;
 
 /// Configuration for URL cleaning rules
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,7 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=data.json");
 
     // Load the JSON from the project root
-    let json = fs::read_to_string("./data.json")?;
+    let json = fs::read_to_string("./Rules/data.min.json")?;
 
     // Deserialize it
     let url_config: ClearUrlsConfig =

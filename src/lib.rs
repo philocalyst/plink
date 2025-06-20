@@ -1,5 +1,4 @@
 use anyhow::{Context, Result};
-use bincode;
 use log::{debug, info, warn};
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
@@ -52,6 +51,7 @@ struct CompiledProvider {
     redirections: Vec<Regex>,
     referral_marketing: Vec<Regex>,
     complete_provider: bool,
+    #[allow(dead_code)]
     force_redirection: bool, // We're not doing much with this field because it's dependent on browser usage to actually redirect.
 }
 
@@ -139,7 +139,7 @@ impl UrlCleaner {
         let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/data.bin"));
 
         // Deserialize via bitcode's serde‐integration
-        let (config, _) = bincode::serde::decode_from_slice(&bytes, config)?;
+        let (config, _) = bincode::serde::decode_from_slice(bytes, config)?;
 
         // Build the actual UrlCleaner
         let cleaner = Self::new(config, options)?;
@@ -528,16 +528,6 @@ mod tests {
 
     #[test]
     fn test_basic_cleaning() {
-        let config = r#"
-        {
-            "providers": {
-                "Google": {
-                    "urlPattern": ".*google\\.com.*",
-                    "rules": ["utm_source", "utm_medium", "utm_campaign"]
-                }
-            }
-        }"#;
-
         let cleaner = UrlCleaner::from_data(CleaningOptions::default()).unwrap();
         let result = cleaner
             .clean_url("https://google.com/search?q=test&utm_source=newsletter")
@@ -549,7 +539,6 @@ mod tests {
 
     #[test]
     fn test_additional_params() {
-        let config = r#"{"providers": {}}"#;
         let options = CleaningOptions {
             additional_blocked_params: vec!["fbclid".to_string(), "gclid".to_string()],
             ..Default::default()

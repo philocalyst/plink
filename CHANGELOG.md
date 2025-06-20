@@ -5,19 +5,24 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-## [0.2.2] – 2025-06-19
+## [0.2.3] – 2025-06-19
 
 ### Added
 - **Tracing support for debugging**: Added comprehensive tracing infrastructure using the `tracing` and `tracing-subscriber` crates to enable detailed debugging and observability
   - Instrumented key functions (`from_data`, `clean_url`) with `#[instrument]` attributes
   - Configured tracing subscriber with TRACE level logging and span events for function entry/exit
   - Handles edge cases and provides detailed execution flow visibility
-  - Added bincode configuration and encoding/decoding capabilities in build process
+- Added bincode configuration and encoding/decoding capabilities in build process
   - Maintains compatibility with existing bitcode serialization
 - **Enhanced debugging capabilities**: Added `Debug` trait implementation for `UrlCleaner` struct to improve development experience
+- **README**: For project marketing
+
+### Fixed
+- Clippy lints
 
 ### Changed
 - **Bincode serialization support**: Integrated the `bincode` crate as a replacement serialization option over bitcode (seems quicker, more maintained)
+- **Git submodule**: To pull new rules as they release
 - **Build process improvements**: Updated build script to use bincode for data serialization while maintaining bitcode compatibility
 - **Dependency updates**: Added new dependencies for tracing (`tracing`, `tracing-subscriber`, `nu-ansi-term`, `once_cell`, `sharded-slab`, `thread_local`) and serialization (`bincode`, `bincode_derive`, `unty`, `virtue`)
 
