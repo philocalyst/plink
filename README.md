@@ -13,14 +13,14 @@ Get started by installing Plink → see [Install](#install)
 
 Use Plink to clean one or more URLs right from your terminal:
 
-```console
+```shell
 plink https://example.com/page?utm_source=newsletter&fbclid=XYZ123
 https://example.com/page
 ```
 
 Pass multiple URLs:
 
-```console
+```shell
 plink https://site.com/?a=1&utm_medium=email, https://foo.org/?gclid=ABC
 https://site.com/?a=1
 https://foo.org/
@@ -28,7 +28,7 @@ https://foo.org/
 
 Control options:
 
-```console
+```shell
 plink --no-referral-marketing --additional-params=ref,src \
     https://mysite.com/?src=test&ref=home&utm_campaign=spring
 https://mysite.com/
@@ -79,7 +79,7 @@ let cleaner = UrlCleaner::from_data(options)?;
 
 Clone the repo and run:
 
-```console
+```shell
 git clone https://github.com/yourorg/plink.git
 cd plink
 cargo build --release
@@ -87,13 +87,13 @@ cargo build --release
 
 Run tests:
 
-```console
+```shell
 cargo test
 ```
 
 Enable TRACE-level logs and span events:
 
-```console
+```shell
 RUST_LOG=trace cargo run -- https://example.com/?utm_source=test
 ```
 
@@ -103,7 +103,7 @@ RUST_LOG=trace cargo run -- https://example.com/?utm_source=test
 
 ### From crates.io
 
-```console
+```shell
 cargo install plink
 ```
 
