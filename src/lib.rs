@@ -6,39 +6,8 @@ use std::collections::{HashMap, HashSet};
 use tracing::instrument;
 use url::Url;
 
-/// Configuration for URL cleaning rules
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClearUrlsConfig {
-    pub providers: HashMap<String, Provider>,
-}
+use crate::rules::PROVIDERS;
 
-/// A provider defines cleaning rules for specific domains/services
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Provider {
-    #[serde(rename = "urlPattern")]
-    pub url_pattern: String,
-
-    #[serde(default)]
-    pub rules: Vec<String>,
-
-    #[serde(rename = "rawRules", default)]
-    pub raw_rules: Vec<String>,
-
-    #[serde(default)]
-    pub exceptions: Vec<String>,
-
-    #[serde(default)]
-    pub redirections: Vec<String>,
-
-    #[serde(rename = "referralMarketing", default)]
-    pub referral_marketing: Vec<String>,
-
-    #[serde(rename = "completeProvider", default)]
-    pub complete_provider: bool,
-
-    #[serde(rename = "forceRedirection", default)]
-    pub force_redirection: bool,
-}
 mod rules;
 
 /// Compiled provider with regex patterns for performance
@@ -107,44 +76,17 @@ pub struct UrlCleaner {
 
 impl UrlCleaner {
     /// Create a new URL cleaner from configuration
-    pub fn new(config: ClearUrlsConfig, options: CleaningOptions) -> Result<Self> {
+    pub fn new(options: CleaningOptions) -> Result<Self> {
         info!(
             "Initializing URL cleaner with {} providers",
-            config.providers.len()
+            PROVIDERS.len()
         );
 
-        let mut providers = Vec::new();
-
-        for (name, provider) in config.providers {
-            match Self::compile_provider(name.clone(), provider) {
-                Ok(compiled) => providers.push(compiled),
-                Err(e) => {
-                    warn!("Failed to compile provider '{}': {}", name, e);
-                    continue;
-                }
-            }
-        }
-
-        info!("Successfully compiled {} providers", providers.len());
-
-        Ok(Self { providers, options })
-    }
-
-    /// Load configuration from JSON string
-    #[instrument]
-    pub fn from_data(options: CleaningOptions) -> Result<Self> {
-        // The bincode config
-        let config = bincode::config::standard();
-
-        // Include the compiled bitcode blob
-        let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/data.bin"));
-
-        // Deserialize via bitcode's serde‐integration
-        let (config, _) = bincode::serde::decode_from_slice(bytes, config)?;
-
-        // Build the actual UrlCleaner
-        let cleaner = Self::new(config, options)?;
-        Ok(cleaner)
+        // Pull from the generated PROVIDERS struct
+        Ok(Self {
+            providers: PROVIDERS,
+            options,
+        })
     }
 
     /// Clean a URL by removing tracking parameters
@@ -240,64 +182,6 @@ impl UrlCleaner {
             redirect: false,
             cancel: false,
             applied_rules,
-        })
-    }
-
-    /// Parse and compile providers into local regex
-    fn compile_provider(name: String, provider: Provider) -> Result<CompiledProvider> {
-        let url_pattern = Regex::new(&provider.url_pattern)
-            .context(format!("Invalid URL pattern for provider {}", name))?;
-
-        // Append the rules verbatim
-        let rules = provider
-            .rules
-            .iter()
-            .map(|r| Regex::new(r))
-            .collect::<Result<Vec<_>, _>>()
-            .context("Failed to compile rules")?;
-
-        // These are the rules that apply to the entire URL
-        let raw_rules = provider
-            .raw_rules
-            .iter()
-            .map(|r| Regex::new(r))
-            .collect::<Result<Vec<_>, _>>()
-            .context("Failed to compile raw rules")?;
-
-        // Get exceptions
-        let exceptions = provider
-            .exceptions
-            .iter()
-            .map(|r| Regex::new(r))
-            .collect::<Result<Vec<_>, _>>()
-            .context("Failed to compile exceptions")?;
-
-        // Get redirects
-        let redirections = provider
-            .redirections
-            .iter()
-            .map(|r| Regex::new(r))
-            .collect::<Result<Vec<_>, _>>()
-            .context("Failed to compile redirections")?;
-
-        // Get referrals
-        let referral_marketing = provider
-            .referral_marketing
-            .iter()
-            .map(|r| Regex::new(&format!("^{}$", r)))
-            .collect::<Result<Vec<_>, _>>()
-            .context("Failed to compile referral marketing rules")?;
-
-        Ok(CompiledProvider {
-            name,
-            url_pattern,
-            rules,
-            raw_rules,
-            exceptions,
-            redirections,
-            referral_marketing,
-            complete_provider: provider.complete_provider,
-            force_redirection: provider.force_redirection,
         })
     }
 
@@ -529,7 +413,7 @@ mod tests {
 
     #[test]
     fn test_basic_cleaning() {
-        let cleaner = UrlCleaner::from_data(CleaningOptions::default()).unwrap();
+        let cleaner = UrlCleaner::new(CleaningOptions::default()).unwrap();
         let result = cleaner
             .clean_url("https://google.com/search?q=test&utm_source=newsletter")
             .unwrap();
@@ -545,7 +429,7 @@ mod tests {
             ..Default::default()
         };
 
-        let cleaner = UrlCleaner::from_data(options).unwrap();
+        let cleaner = UrlCleaner::new(options).unwrap();
         let result = cleaner
             .clean_url("https://example.com/?test=1&fbclid=123&gclid=456")
             .unwrap();

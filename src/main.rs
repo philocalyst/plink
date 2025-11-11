@@ -1,4 +1,5 @@
 use anyhow::Result;
+mod rules;
 use clap::Parser;
 use plink::{CleaningOptions, UrlCleaner};
 // use tracing::Level;
