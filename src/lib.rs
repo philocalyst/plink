@@ -54,12 +54,12 @@ impl Default for CleaningOptions {
 
 /// Main URL cleaner that applies rules to sanitize URLs
 #[derive(Debug)]
-pub struct UrlCleaner {
-    providers: Vec<Provider>,
+pub struct UrlCleaner<'a> {
+    providers: &'a [Provider],
     options: CleaningOptions,
 }
 
-impl UrlCleaner {
+impl<'a> UrlCleaner<'a> {
     /// Create a new URL cleaner from configuration
     pub fn new(options: CleaningOptions) -> Result<Self> {
         info!(
@@ -67,7 +67,6 @@ impl UrlCleaner {
             PROVIDERS.len()
         );
 
-        // Pull from the generated PROVIDERS struct
         Ok(Self {
             providers: PROVIDERS,
             options,
@@ -106,10 +105,10 @@ impl UrlCleaner {
         let mut applied_rules = Vec::new();
 
         // Apply provider-specific rules
-        for provider in &self.providers {
+        for provider in self.providers {
             if provider.matches_url(&url)? && !provider.matches_exception(&url)? {
                 // Push the matched provider when found
-                applied_rules.push(provider.name.clone());
+                applied_rules.push(provider.name.to_string());
 
                 let result = self.apply_provider_rules(provider, &mut url)?;
 
@@ -214,7 +213,7 @@ impl UrlCleaner {
                 changed: false,
                 redirect: false,
                 cancel: true,
-                applied_rules: vec![provider.name.clone()],
+                applied_rules: vec![provider.name.to_string()],
             });
         }
 
@@ -277,10 +276,10 @@ impl UrlCleaner {
         let mut changed = false;
 
         // Collect all rules to apply
-        let mut all_rules = provider.rules.clone();
-        if self.options.apply_referral_marketing {
-            all_rules.extend(provider.referral_marketing.iter());
-        }
+        let all_rules: &Vec<&'static Regex> = provider.rules.as_ref();
+        // if self.options.apply_referral_marketing {
+        //     all_rules.extend(provider.referral_marketing.iter());
+        // }
 
         // Remove matching parameters.
         // We only need the key, because that's what the dataset is based on.
@@ -378,7 +377,7 @@ impl Provider {
     }
 
     fn matches_exception(&self, url: &Url) -> Result<bool> {
-        for exception in **self.exceptions {
+        for exception in self.exceptions.iter() {
             if exception.is_match(url.as_str()) {
                 debug!("URL {} matches exception in provider {}", url, self.name);
                 return Ok(true);
