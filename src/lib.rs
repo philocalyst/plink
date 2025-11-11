@@ -6,24 +6,9 @@ use std::collections::{HashMap, HashSet};
 use tracing::instrument;
 use url::Url;
 
-use crate::rules::PROVIDERS;
+use crate::rules::{PROVIDERS, Provider};
 
 mod rules;
-
-/// Compiled provider with regex patterns for performance
-#[derive(Debug)]
-struct CompiledProvider {
-    name: String,
-    url_pattern: Regex,
-    rules: Vec<Regex>,
-    raw_rules: Vec<Regex>,
-    exceptions: Vec<Regex>,
-    redirections: Vec<Regex>,
-    referral_marketing: Vec<Regex>,
-    complete_provider: bool,
-    #[allow(dead_code)]
-    force_redirection: bool, // We're not doing much with this field because it's dependent on browser usage to actually redirect.
-}
 
 /// Result of URL cleaning operation
 #[derive(Debug, Clone)]
@@ -70,7 +55,7 @@ impl Default for CleaningOptions {
 /// Main URL cleaner that applies rules to sanitize URLs
 #[derive(Debug)]
 pub struct UrlCleaner {
-    providers: Vec<CompiledProvider>,
+    providers: Vec<Provider>,
     options: CleaningOptions,
 }
 
@@ -218,11 +203,7 @@ impl UrlCleaner {
     }
 
     /// Apply the rules of the provider to an input url, brings in helper functions to help
-    fn apply_provider_rules(
-        &self,
-        provider: &CompiledProvider,
-        url: &mut Url,
-    ) -> Result<CleaningResult> {
+    fn apply_provider_rules(&self, provider: &Provider, url: &mut Url) -> Result<CleaningResult> {
         let mut changed = false;
         let mut applied_rules = Vec::new();
 
@@ -276,8 +257,8 @@ impl UrlCleaner {
     }
 
     /// Resolve the redirections
-    fn apply_redirections(&self, provider: &CompiledProvider, url: &Url) -> Result<Option<Url>> {
-        for redirection in &provider.redirections {
+    fn apply_redirections(&self, provider: &Provider, url: &Url) -> Result<Option<Url>> {
+        for &redirection in provider.redirections.iter() {
             if let Some(captures) = redirection.captures(url.as_str()) {
                 if let Some(redirect_match) = captures.get(1) {
                     let decoded_url = urlencoding::decode(redirect_match.as_str())
@@ -292,13 +273,13 @@ impl UrlCleaner {
     }
 
     /// Apply the specific parameter rules (the most complex of them)
-    fn apply_parameter_rules(&self, provider: &CompiledProvider, url: &mut Url) -> Result<bool> {
+    fn apply_parameter_rules(&self, provider: &Provider, url: &mut Url) -> Result<bool> {
         let mut changed = false;
 
         // Collect all rules to apply
         let mut all_rules = provider.rules.clone();
         if self.options.apply_referral_marketing {
-            all_rules.extend(provider.referral_marketing.clone());
+            all_rules.extend(provider.referral_marketing.iter());
         }
 
         // Remove matching parameters.
@@ -306,7 +287,7 @@ impl UrlCleaner {
         let params_to_remove: Vec<String> = url
             .query_pairs()
             .filter_map(|(key, _)| {
-                for rule in &all_rules {
+                for &rule in all_rules.iter() {
                     // Match verbatim keys
                     let rule = RegexBuilder::new(&format!("^{}$", rule))
                         .case_insensitive(true)
@@ -391,13 +372,13 @@ impl UrlCleaner {
     }
 }
 
-impl CompiledProvider {
+impl Provider {
     fn matches_url(&self, url: &Url) -> Result<bool> {
         Ok(self.url_pattern.is_match(url.as_str()))
     }
 
     fn matches_exception(&self, url: &Url) -> Result<bool> {
-        for exception in &self.exceptions {
+        for exception in **self.exceptions {
             if exception.is_match(url.as_str()) {
                 debug!("URL {} matches exception in provider {}", url, self.name);
                 return Ok(true);
