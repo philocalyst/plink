@@ -1,6 +1,6 @@
+use quote::{format_ident, quote};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::{env, fs, path::Path};
+use std::{collections::HashMap, env, fs, path::Path};
 
 /// Configuration for URL cleaning rules
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -29,55 +29,21 @@ pub struct Provider {
     pub force_redirection: bool,
 }
 
-fn escape_rust_string(s: &str) -> String {
-    s.replace('\\', "\\\\")
-        .replace('"', "\\\"")
-        .replace('\n', "\\n")
-        .replace('\r', "\\r")
-        .replace('\t', "\\t")
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=Rules/data.min.json");
 
     let json = fs::read_to_string("./Rules/data.min.json")?;
     let url_config: ClearUrlsConfig = serde_json::from_str(&json)?;
 
-    let out_dir = env::var("OUT_DIR")?;
-    let dest_path = Path::new(&out_dir).join("generated.rs");
-
-    let mut code = String::new();
-
-    // Generate imports
-    code.push_str(
-        r#"
-use regex::Regex;
-use lazy_regex::regex;
-
-#[derive(Debug)]
-pub struct Provider {
-    pub url_pattern: &'static Regex,
-    pub rules: &'static [&'static Regex],
-    pub raw_rules: &'static [&'static Regex],
-    pub exceptions: &'static [&'static Regex],
-    pub redirections: &'static [&'static Regex],
-    pub referral_marketing: &'static [&'static Regex],
-    pub complete_provider: bool,
-    pub force_redirection: bool,
-}
-
-"#,
-    );
-
     // Track unique regex patterns for deduplication
     let mut regex_counter = 0;
-    let mut regex_map: HashMap<String, String> = HashMap::new();
+    let mut regex_map: HashMap<String, proc_macro2::Ident> = HashMap::new();
 
-    let mut get_regex_name = |pattern: &str| -> String {
+    let mut get_regex_name = |pattern: &str| -> proc_macro2::Ident {
         if let Some(name) = regex_map.get(pattern) {
             return name.clone();
         }
-        let name = format!("RE_{}", regex_counter);
+        let name = format_ident!("RE_{}", regex_counter.to_string());
         regex_counter += 1;
         regex_map.insert(pattern.to_string(), name.clone());
         name
@@ -103,19 +69,17 @@ pub struct Provider {
         }
     }
 
-    // Generate all regex statics using lazy_regex
+    // Generate all regex statics using LazyLock
+    let mut regex_defs = Vec::new();
     for (pattern, name) in &regex_map {
-        let escaped = escape_rust_string(pattern);
-        code.push_str(&format!(
-            "static {}: &Regex = regex!(r\"{}\");\n",
-            name, escaped
-        ));
+        regex_defs.push(quote! {
+            static #name: std::sync::LazyLock<regex::Regex> =
+                std::sync::LazyLock::new(|| regex::Regex::new(#pattern).unwrap());
+        });
     }
 
-    code.push_str("\n");
-
-    // Generate array statics for each provider's rule lists
-    let mut provider_data = Vec::new();
+    // Generate provider data
+    let mut provider_entries = Vec::new();
 
     for (provider_name, provider) in &url_config.providers {
         // Create a valid Rust identifier from the provider name
@@ -138,127 +102,161 @@ pub struct Provider {
             .filter(|c| c.is_alphanumeric() || *c == '_')
             .collect();
 
-        // Generate rules array
-        if !provider.rules.is_empty() {
-            let array_name = format!("{}_RULES", safe_name);
-            code.push_str(&format!("static {}: &[&Regex] = &[\n", array_name));
-            for rule in &provider.rules {
-                let regex_name = regex_map.get(rule).unwrap();
-                code.push_str(&format!("    {},\n", regex_name));
-            }
-            code.push_str("];\n\n");
-        }
-
-        // Generate raw_rules array
-        if !provider.raw_rules.is_empty() {
-            let array_name = format!("{}_RAW_RULES", safe_name);
-            code.push_str(&format!("static {}: &[&Regex] = &[\n", array_name));
-            for rule in &provider.raw_rules {
-                let regex_name = regex_map.get(rule).unwrap();
-                code.push_str(&format!("    {},\n", regex_name));
-            }
-            code.push_str("];\n\n");
-        }
-
-        // Generate exceptions array
-        if !provider.exceptions.is_empty() {
-            let array_name = format!("{}_EXCEPTIONS", safe_name);
-            code.push_str(&format!("static {}: &[&Regex] = &[\n", array_name));
-            for exc in &provider.exceptions {
-                let regex_name = regex_map.get(exc).unwrap();
-                code.push_str(&format!("    {},\n", regex_name));
-            }
-            code.push_str("];\n\n");
-        }
-
-        // Generate redirections array
-        if !provider.redirections.is_empty() {
-            let array_name = format!("{}_REDIRECTIONS", safe_name);
-            code.push_str(&format!("static {}: &[&Regex] = &[\n", array_name));
-            for redir in &provider.redirections {
-                let regex_name = regex_map.get(redir).unwrap();
-                code.push_str(&format!("    {},\n", regex_name));
-            }
-            code.push_str("];\n\n");
-        }
-
-        // Generate referral_marketing array
-        if !provider.referral_marketing.is_empty() {
-            let array_name = format!("{}_REFERRAL", safe_name);
-            code.push_str(&format!("static {}: &[&Regex] = &[\n", array_name));
-            for ref_mark in &provider.referral_marketing {
-                let regex_name = regex_map.get(ref_mark).unwrap();
-                code.push_str(&format!("    {},\n", regex_name));
-            }
-            code.push_str("];\n\n");
-        }
-
-        provider_data.push((provider_name.clone(), safe_name, provider.clone()));
-    }
-
-    // Generate the PHF map
-    code.push_str("pub static PROVIDERS: phf::Map<&'static str, Provider> = phf::phf_map! {\n");
-
-    for (provider_name, safe_name, provider) in &provider_data {
+        let safe_ident = format_ident!("{}", safe_name);
         let url_pattern_regex = regex_map.get(&provider.url_pattern).unwrap();
 
-        let rules_ref = if !provider.rules.is_empty() {
-            format!("{}_RULES", safe_name)
+        // Generate rules array
+        let rules_array_name = format_ident!("{}_RULES", safe_name);
+        let rules: Vec<_> = provider
+            .rules
+            .iter()
+            .map(|r| regex_map.get(r).unwrap())
+            .collect();
+
+        let rules_def = if !rules.is_empty() {
+            quote! {
+                static #rules_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![#(&#rules),*]);
+            }
         } else {
-            "&[]".to_string()
+            quote! {
+                static #rules_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![]);
+            }
         };
 
-        let raw_rules_ref = if !provider.raw_rules.is_empty() {
-            format!("{}_RAW_RULES", safe_name)
+        // Generate raw_rules array
+        let raw_rules_array_name = format_ident!("{}_RAW_RULES", safe_name);
+        let raw_rules: Vec<_> = provider
+            .raw_rules
+            .iter()
+            .map(|r| regex_map.get(r).unwrap())
+            .collect();
+
+        let raw_rules_def = if !raw_rules.is_empty() {
+            quote! {
+                static #raw_rules_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![#(&#raw_rules),*]);
+            }
         } else {
-            "&[]".to_string()
+            quote! {
+                static #raw_rules_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![]);
+            }
         };
 
-        let exceptions_ref = if !provider.exceptions.is_empty() {
-            format!("{}_EXCEPTIONS", safe_name)
+        // Generate exceptions array
+        let exceptions_array_name = format_ident!("{}_EXCEPTIONS", safe_name);
+        let exceptions: Vec<_> = provider
+            .exceptions
+            .iter()
+            .map(|e| regex_map.get(e).unwrap())
+            .collect();
+
+        let exceptions_def = if !exceptions.is_empty() {
+            quote! {
+                static #exceptions_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![#(&#exceptions),*]);
+            }
         } else {
-            "&[]".to_string()
+            quote! {
+                static #exceptions_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![]);
+            }
         };
 
-        let redirections_ref = if !provider.redirections.is_empty() {
-            format!("{}_REDIRECTIONS", safe_name)
+        // Generate redirections array
+        let redirections_array_name = format_ident!("{}_REDIRECTIONS", safe_name);
+        let redirections: Vec<_> = provider
+            .redirections
+            .iter()
+            .map(|r| regex_map.get(r).unwrap())
+            .collect();
+
+        let redirections_def = if !redirections.is_empty() {
+            quote! {
+                static #redirections_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![#(&#redirections),*]);
+            }
         } else {
-            "&[]".to_string()
+            quote! {
+                static #redirections_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![]);
+            }
         };
 
-        let referral_ref = if !provider.referral_marketing.is_empty() {
-            format!("{}_REFERRAL", safe_name)
+        // Generate referral_marketing array
+        let referral_array_name = format_ident!("{}_REFERRAL", safe_name);
+        let referral_marketing: Vec<_> = provider
+            .referral_marketing
+            .iter()
+            .map(|r| regex_map.get(r).unwrap())
+            .collect();
+
+        let referral_def = if !referral_marketing.is_empty() {
+            quote! {
+                static #referral_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![#(&#referral_marketing),*]);
+            }
         } else {
-            "&[]".to_string()
+            quote! {
+                static #referral_array_name: std::sync::LazyLock<Vec<&'static regex::Regex>> =
+                    std::sync::LazyLock::new(|| vec![]);
+            }
         };
 
-        code.push_str(&format!(
-            r#"    "{}" => Provider {{
-        url_pattern: {},
-        rules: {},
-        raw_rules: {},
-        exceptions: {},
-        redirections: {},
-        referral_marketing: {},
-        complete_provider: {},
-        force_redirection: {},
-    }},
-"#,
-            escape_rust_string(provider_name),
-            url_pattern_regex,
-            rules_ref,
-            raw_rules_ref,
-            exceptions_ref,
-            redirections_ref,
-            referral_ref,
-            provider.complete_provider,
-            provider.force_redirection
-        ));
+        let complete_provider = provider.complete_provider;
+        let force_redirection = provider.force_redirection;
+
+        provider_entries.push(quote! {
+            #rules_def
+            #raw_rules_def
+            #exceptions_def
+            #redirections_def
+            #referral_def
+
+            #provider_name => Provider {
+                url_pattern: &#url_pattern_regex,
+                rules: &#rules_array_name,
+                raw_rules: &#raw_rules_array_name,
+                exceptions: &#exceptions_array_name,
+                redirections: &#redirections_array_name,
+                referral_marketing: &#referral_array_name,
+                complete_provider: #complete_provider,
+                force_redirection: #force_redirection,
+            },
+        });
     }
 
-    code.push_str("};\n");
+    // Generate the complete file
+    let output = quote! {
+        use regex::Regex;
+        use std::sync::LazyLock;
 
-    fs::write(dest_path, code)?;
+        #[derive(Debug)]
+        pub struct Provider {
+            pub url_pattern: &'static Regex,
+            pub rules: &'static LazyLock<Vec<&'static Regex>>,
+            pub raw_rules: &'static LazyLock<Vec<&'static Regex>>,
+            pub exceptions: &'static LazyLock<Vec<&'static Regex>>,
+            pub redirections: &'static LazyLock<Vec<&'static Regex>>,
+            pub referral_marketing: &'static LazyLock<Vec<&'static Regex>>,
+            pub complete_provider: bool,
+            pub force_redirection: bool,
+        }
+
+        // Generate all regex statics
+        #(#regex_defs)*
+
+        // Generate provider map
+        pub static PROVIDERS: phf::Map<&'static str, Provider> = phf::phf_map! {
+            #(#provider_entries)*
+        };
+    };
+
+    let out_dir = env::var("OUT_DIR")?;
+    let dest_path = Path::new(&out_dir).join("generated.rs");
+    fs::write(dest_path, output.to_string())?;
 
     Ok(())
 }
