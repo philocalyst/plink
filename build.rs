@@ -118,7 +118,25 @@ pub struct Provider {
     let mut provider_data = Vec::new();
 
     for (provider_name, provider) in &url_config.providers {
-        let safe_name = provider_name.replace(['.', '-', ' '], "_").to_uppercase();
+        // Create a valid Rust identifier from the provider name
+        let mut safe_name = provider_name
+            .replace(['.', '-', ' ', '/'], "_")
+            .to_uppercase();
+
+        // Rust identifiers can't start with a number, so prefix with P_
+        if safe_name
+            .chars()
+            .next()
+            .map_or(false, |c| c.is_ascii_digit())
+        {
+            safe_name = format!("P_{}", safe_name);
+        }
+
+        // Remove any remaining invalid characters
+        safe_name = safe_name
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
 
         // Generate rules array
         if !provider.rules.is_empty() {
