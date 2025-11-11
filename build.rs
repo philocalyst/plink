@@ -78,13 +78,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    // Generate provider data
+    // Generate all static arrays first
+    let mut all_static_defs = Vec::new();
     let mut provider_entries = Vec::new();
 
     for (provider_name, provider) in &url_config.providers {
         // Create a valid Rust identifier from the provider name
         let mut safe_name = provider_name
-            .replace(['.', '-', ' ', '/'], "_")
+            .replace(['.', '-', ' ', '/', ':'], "_")
             .to_uppercase();
 
         // Rust identifiers can't start with a number, so prefix with P_
@@ -102,7 +103,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .filter(|c| c.is_alphanumeric() || *c == '_')
             .collect();
 
-        let safe_ident = format_ident!("{}", safe_name);
         let url_pattern_regex = regex_map.get(&provider.url_pattern).unwrap();
 
         // Generate rules array
@@ -208,14 +208,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let complete_provider = provider.complete_provider;
         let force_redirection = provider.force_redirection;
 
-        provider_entries.push(quote! {
-            #rules_def
-            #raw_rules_def
-            #exceptions_def
-            #redirections_def
-            #referral_def
+        // Add all static definitions
+        all_static_defs.push(rules_def);
+        all_static_defs.push(raw_rules_def);
+        all_static_defs.push(exceptions_def);
+        all_static_defs.push(redirections_def);
+        all_static_defs.push(referral_def);
 
-            #provider_name => Provider {
+        provider_entries.push(quote! {
+            Provider {
+                name: #provider_name,
                 url_pattern: &#url_pattern_regex,
                 rules: &#rules_array_name,
                 raw_rules: &#raw_rules_array_name,
@@ -224,7 +226,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 referral_marketing: &#referral_array_name,
                 complete_provider: #complete_provider,
                 force_redirection: #force_redirection,
-            },
+            }
         });
     }
 
@@ -235,7 +237,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         #[derive(Debug)]
         pub struct Provider {
-            pub url_pattern: &'static Regex,
+            pub name: &'static str,
+            pub url_pattern: &'static LazyLock<Regex>,
             pub rules: &'static LazyLock<Vec<&'static Regex>>,
             pub raw_rules: &'static LazyLock<Vec<&'static Regex>>,
             pub exceptions: &'static LazyLock<Vec<&'static Regex>>,
@@ -248,10 +251,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Generate all regex statics
         #(#regex_defs)*
 
-        // Generate provider map
-        pub static PROVIDERS: phf::Map<&'static str, Provider> = phf::phf_map! {
-            #(#provider_entries)*
-        };
+        // Generate all rule array statics
+        #(#all_static_defs)*
+
+        // Generate provider array
+        pub static PROVIDERS: &[Provider] = &[
+            #(#provider_entries),*
+        ];
     };
 
     let out_dir = env::var("OUT_DIR")?;
