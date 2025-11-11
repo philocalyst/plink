@@ -39,6 +39,7 @@ pub struct Provider {
     #[serde(rename = "forceRedirection", default)]
     pub force_redirection: bool,
 }
+mod rules;
 
 /// Compiled provider with regex patterns for performance
 #[derive(Debug)]
