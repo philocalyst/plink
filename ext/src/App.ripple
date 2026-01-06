@@ -1,53 +1,79 @@
 import { track } from 'ripple';
 import './style.css';
-import { createProgressBar } from './progress-bar.ts'; 
+import { createProgressBar } from './progress-bar.ts';
+
+// Function to load statistics from background script
+async function loadStatistics(): Promise<Statistics> {
+    try {
+        const response = await browser.runtime.sendMessage({
+            type: MessageType.GetStatistics
+        });
+        return response as Statistics;
+    } catch (error) {
+        console.error('[Ripple] Failed to load statistics:', error);
+        // Return default values on error
+        return {
+            totalCleaned: 0,
+            totalBlocked: 0,
+            sessionStart: Date.now()
+        };
+    }
+}
 
 export component App() {
-	let count = track(0);
-
-	const getProgressBar = (val: number) => {
+    let count = track(0);
+    
+    // Initialize tracked state with defaults
+    let stats = track<Statistics>({
+        totalCleaned: 0,
+        totalBlocked: 0,
+        sessionStart: 0
+    });
+    
+    // Load actual values from background script
+    loadStatistics().then(data => {
+        @stats = data;
+    });
+    
+    // Progress bar logic based on stats
+    const getProgressBar = (cleaned: number, blocked: number) => {
         return createProgressBar({
-            green: Math.max(50, val * 5),
-            purple: 200,
-            yellow: Math.max(50, 200 - (val * 2)),
+            green: cleaned,
+            purple: 150, 
+            yellow: blocked,
         });
     };
 
-	<div class="app">
-		<div class="card">
-			<img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
-
-			<p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
-
-			<div class="progress-container">
-                {html getProgressBar(30)}
+    <div class="app">
+        <div class="card">
+            <img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
+            <p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
+            <div class="progress-container">
+                {html getProgressBar(@stats.totalCleaned, @stats.totalBlocked)}
             </div>
-
-			<div class="counter">
-				<button onClick={() => @count--}>{'-'}</button>
-				<span class="count">{@count}</span>
-				<button onClick={() => @count++}>{'+'}</button>
-			</div>
-
-			<div class="links">
-				<a href="https://www.ripplejs.com/" target="_blank" class="link-btn docs">
-					{'Docs'}
-				</a>
-				<a
-					href="https://github.com/Ripple-TS/ripple"
-					target="_blank"
-					class="link-btn github"
-				>
-					{'GitHub'}
-				</a>
-			</div>
-
-			<p class="info">{'This is a basic Ripple application template.'}</p>
-			<p class="edit-hint">
-				{'Edit '}
-				<code>{'src/App.ripple'}</code>
-				{' to get started.'}
-			</p>
-		</div>
-	</div>
+            <div class="counter">
+                <button onClick={() => @count--}>{'-'}</button>
+                <span class="count">{@count}</span>
+                <button onClick={() => @count++}>{'+'}</button>
+            </div>
+            <div class="links">
+                <a href="https://www.ripplejs.com/" target="_blank" class="link-btn docs">
+                    {'Docs'}
+                </a>
+                <a
+                    href="https://github.com/Ripple-TS/ripple"
+                    target="_blank"
+                    class="link-btn github"
+                >
+                    {'GitHub'}
+                </a>
+            </div>
+            <p class="info">{'This is a basic Ripple application template.'}</p>
+            <p class="edit-hint">
+                {'Edit '}
+                <code>{'src/App.ripple'}</code>
+                {' to get started.'}
+            </p>
+        </div>
+    </div>
 }
