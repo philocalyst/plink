@@ -592,6 +592,7 @@ dependencies = [
  "tsify",
  "url",
  "urlencoding",
+ "wasm-bindgen",
 ]
 
 [[package]]
