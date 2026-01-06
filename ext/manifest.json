@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Plink",
+  "version": "1.0",
+  "description": "A simple and elegant web extension.",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "icons": {
+    "16": "src/assets/favicon.ico",
+    "48": "src/assets/favicon.ico",
+    "128": "src/assets/favicon.ico"
+  }
+}
