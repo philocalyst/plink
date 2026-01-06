@@ -8,8 +8,8 @@ interface ProgressBarOptions {
 
 export function createProgressBar({
   green,
-  purple = 30,
-  yellow = 20,
+  purple,
+  yellow,
 }: ProgressBarOptions): string {
   const total = green + purple + yellow;
 
@@ -19,14 +19,14 @@ export function createProgressBar({
   const pW = (purple / total) * 100;
   const yW = (yellow / total) * 100;
 
-  const height = 60;
+  const height = 30;
   const vWidth = 100;
   const radius = height / 2;
 
   const draw = SVG().viewbox(0, 0, vWidth, height);
 
   draw.attr('width', '100%');
-  draw.attr('height', '60');
+  draw.attr('height', height);
   draw.attr('preserveAspectRatio', 'xMidYMid meet');
 
   draw.style().addText(`
