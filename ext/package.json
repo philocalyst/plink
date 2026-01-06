@@ -22,6 +22,7 @@
     "@ripple-ts/prettier-plugin": "latest",
     "@ripple-ts/typescript-plugin": "latest",
     "@ripple-ts/vite-plugin": "latest",
+    "@types/firefox-webext-browser": "143.0.0",
     "@typescript-eslint/parser": "^8.20.0",
     "eslint": "^9.0.0",
     "prettier": "^3.6.2",
