@@ -8,6 +8,7 @@ export default defineConfig({
 	},
 	build: {
 		target: 'esnext',
+		manifest: true,
 		rollupOptions: {
 			output: {
 				entryFileNames: `[name].js`,
