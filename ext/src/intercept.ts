@@ -78,9 +78,6 @@ const IS_PRIVATE_IP = /^(?:10|127|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168|169\.254
  */
 function isLocalURL(url: string): boolean {
   try {
-    // Only parse if it looks like a URL to save overhead on junk strings
-    if (!url.includes('://')) return false;
-
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
 
