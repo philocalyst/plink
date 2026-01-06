@@ -1,0 +1,35 @@
+{
+  "name": "purl",
+  "version": "1.0.0",
+  "description": "A Ripple application created with create-ripple",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "serve": "vite preview",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "@ripple-ts/eslint-plugin": "latest",
+    "prettier": "^3.6.2",
+    "@ripple-ts/prettier-plugin": "latest",
+    "@ripple-ts/eslint-parser": "latest",
+    "typescript": "^5.9.2",
+    "@typescript-eslint/parser": "^8.20.0",
+    "vite": "^7.1.4",
+    "@ripple-ts/vite-plugin": "latest",
+    "@ripple-ts/typescript-plugin": "latest"
+  },
+  "dependencies": {
+    "ripple": "latest"
+  },
+  "packageManager": "bun@1.3.0"
+}
