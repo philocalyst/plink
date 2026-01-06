@@ -1,14 +1,27 @@
 import { track } from 'ripple';
 import './style.css';
+import { createProgressBar } from './progress-bar.ts'; 
 
 export component App() {
 	let count = track(0);
+
+	const getProgressBar = (val: number) => {
+        return createProgressBar({
+            greenWidth: Math.max(50, val * 5),
+            purpleWidth: 200,
+            yellowWidth: Math.max(50, 200 - (val * 2)),
+        });
+    };
 
 	<div class="app">
 		<div class="card">
 			<img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
 
 			<p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
+
+			<div class="progress-container">
+                {html getProgressBar(@count)}
+            </div>
 
 			<div class="counter">
 				<button onClick={() => @count--}>{'-'}</button>
