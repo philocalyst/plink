@@ -30,6 +30,7 @@
     "vite": "^7.1.4"
   },
   "dependencies": {
+    "@svgdotjs/svg.js": "3.2.5",
     "ripple": "0.2.192",
     "svg-builder": "3.0.4"
   },
