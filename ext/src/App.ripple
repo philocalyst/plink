@@ -7,9 +7,9 @@ export component App() {
 
 	const getProgressBar = (val: number) => {
         return createProgressBar({
-            greenWidth: Math.max(50, val * 5),
-            purpleWidth: 200,
-            yellowWidth: Math.max(50, 200 - (val * 2)),
+            green: Math.max(50, val * 5),
+            purple: 200,
+            yellow: Math.max(50, 200 - (val * 2)),
         });
     };
 
@@ -20,7 +20,7 @@ export component App() {
 			<p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
 
 			<div class="progress-container">
-                {html getProgressBar(@count)}
+                {html getProgressBar(30)}
             </div>
 
 			<div class="counter">
