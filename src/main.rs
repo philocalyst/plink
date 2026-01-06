@@ -68,7 +68,7 @@ fn main() -> Result<()> {
     };
 
     // load the embedded JSON config
-    let cleaner = UrlCleaner::from_data(options)?;
+    let cleaner = UrlCleaner::new(options)?;
 
     for url in cli.urls {
         match cleaner.clean_url(&url) {
