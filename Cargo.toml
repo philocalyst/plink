@@ -19,6 +19,7 @@ tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 bincode = { version = "2.0.1", features = ["serde"] }
 phf = { version = "0.13.1", features = ["macros", "serde"] }
+tsify = "0.5.6"
 
 [build-dependencies]
 bincode = { version = "2.0.1", features = ["serde"] }
