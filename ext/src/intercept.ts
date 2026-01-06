@@ -9,10 +9,17 @@ import init, { clean_url, default_options, CleaningOptions, CleaningResult } fro
 let isInitialized = false;
 let cleaningOptions: CleaningOptions;
 let globalEnabled = true;
-let statistics = {
+
+interface Statistics {
+  totalCleaned: number;
+  totalBlocked: number;
+  sessionStart: number;
+}
+
+let statistics: Statistics = {
   totalCleaned: 0,
   totalBlocked: 0,
-  sessionStart: Date.now()
+  sessionStart: Date.now(),
 };
 
 /**
