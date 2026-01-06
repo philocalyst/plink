@@ -1,8 +1,8 @@
+use std::collections::HashSet;
+
 use anyhow::{Context, Result};
 use log::{debug, info, warn};
 use regex::{Regex, RegexBuilder};
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
 use tracing::instrument;
 use url::Url;
 
@@ -13,8 +13,8 @@ mod rules;
 /// Result of URL cleaning operation
 #[derive(Debug, Clone)]
 pub struct CleaningResult {
-    /// The cleaned URL
-    pub url: Url,
+    /// The cleaned URL string
+    pub url: String,
     /// Whether any changes were made
     pub changed: bool,
     /// Whether this should be a redirect
@@ -92,7 +92,7 @@ impl<'a> UrlCleaner<'a> {
         if self.should_skip_url(&url) {
             debug!("Skipping URL due to configuration: {}", url);
             return Ok(CleaningResult {
-                url,
+                url: url.to_string(),
                 changed: false,
                 redirect: false,
                 cancel: false,
@@ -119,7 +119,7 @@ impl<'a> UrlCleaner<'a> {
                         original_url, provider.name
                     );
                     return Ok(CleaningResult {
-                        url,
+                        url: url.to_string(),
                         changed: true,
                         redirect: true,
                         cancel: false,
@@ -131,7 +131,7 @@ impl<'a> UrlCleaner<'a> {
                 if result.cancel {
                     info!("URL {} blocked by provider {}", original_url, provider.name);
                     return Ok(CleaningResult {
-                        url,
+                        url: url.to_string(),
                         changed: false,
                         redirect: false,
                         cancel: true,
@@ -161,7 +161,7 @@ impl<'a> UrlCleaner<'a> {
 
         // If not returned early, we can assume this is all correct.
         Ok(CleaningResult {
-            url,
+            url: url.to_string(),
             changed,
             redirect: false,
             cancel: false,
@@ -209,7 +209,7 @@ impl<'a> UrlCleaner<'a> {
         // Check for cancellation (complete provider blocking)
         if provider.complete_provider && self.options.domain_blocking {
             return Ok(CleaningResult {
-                url: url.clone(),
+                url: url.to_string(),
                 changed: false,
                 redirect: false,
                 cancel: true,
@@ -221,7 +221,7 @@ impl<'a> UrlCleaner<'a> {
         if let Some(redirect_url) = self.apply_redirections(provider, url)? {
             *url = redirect_url;
             return Ok(CleaningResult {
-                url: url.clone(),
+                url: url.to_string(),
                 changed: true,
                 redirect: true,
                 cancel: false,
@@ -247,7 +247,7 @@ impl<'a> UrlCleaner<'a> {
         }
 
         Ok(CleaningResult {
-            url: url.clone(),
+            url: url.to_string(),
             changed,
             redirect: false,
             cancel: false,
