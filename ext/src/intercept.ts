@@ -13,13 +13,13 @@ let globalEnabled = true;
 interface Statistics {
   totalCleaned: number;
   totalBlocked: number;
-  sessionStart: number;
+  encountered: number;
 }
 
 let statistics: Statistics = {
   totalCleaned: 0,
   totalBlocked: 0,
-  sessionStart: Date.now(),
+  encountered: 0,
 };
 
 /**
@@ -130,9 +130,11 @@ function handleRequest(
   }
   
   try {
+    statistics.encountered++;
+
     // Clean the URL using WASM module
     const result: CleaningResult = clean_url(details.url, cleaningOptions);
-    
+   
     // Handle cancellation (domain blocking)
     if (result.cancel) {
       statistics.totalBlocked++;
@@ -255,7 +257,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       statistics = {
         totalCleaned: 0,
         totalBlocked: 0,
-        sessionStart: Date.now(),
+        encountered: Date.now(),
       };
       saveStatistics();
       updateBadge();
