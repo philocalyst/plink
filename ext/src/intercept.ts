@@ -197,47 +197,56 @@ function saveStatistics() {
   }, 1000);
 }
 
+enum MessageType {
+  GetStatistics, 
+  GetSettings, 
+  ToggleEnabled,
+  UpdateOptions,
+  ResetStatistics,
+  CleanUrl,
+}
+
 /**
  * Handle messages from popup/content scripts
  */
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   switch (message.type) {
-    case 'getStatistics':
+    case MessageType.GetStatistics:
       sendResponse(statistics);
       break;
-      
-    case 'getSettings':
+
+    case MessageType.GetSettings:
       sendResponse({
         globalEnabled,
-        cleaningOptions
+        cleaningOptions,
       });
       break;
-      
-    case 'toggleEnabled':
+
+    case MessageType.ToggleEnabled:
       globalEnabled = !globalEnabled;
       browser.storage.local.set({ globalEnabled });
       updateBadge();
       sendResponse({ enabled: globalEnabled });
       break;
-      
-    case 'updateOptions':
+
+    case MessageType.UpdateOptions:
       cleaningOptions = { ...cleaningOptions, ...message.options };
       browser.storage.local.set({ cleaningOptions });
       sendResponse({ success: true });
       break;
-      
-    case 'resetStatistics':
+
+    case MessageType.ResetStatistics:
       statistics = {
         totalCleaned: 0,
         totalBlocked: 0,
-        sessionStart: Date.now()
+        sessionStart: Date.now(),
       };
       saveStatistics();
       updateBadge();
       sendResponse({ success: true });
       break;
-      
-    case 'cleanUrl':
+
+    case MessageType.CleanUrl:
       // Manual URL cleaning from popup
       try {
         const result = clean_url(message.url, cleaningOptions);
@@ -247,7 +256,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       break;
   }
-  
+
   return true; // Keep channel open for async response
 });
 
