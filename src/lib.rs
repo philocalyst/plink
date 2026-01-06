@@ -3,15 +3,19 @@ use std::collections::HashSet;
 use anyhow::{Context, Result};
 use log::{debug, info, warn};
 use regex::{Regex, RegexBuilder};
+use serde::{Deserialize, Serialize};
 use tracing::instrument;
+use tsify::Tsify;
 use url::Url;
 
 use crate::rules::{PROVIDERS, Provider};
 
 mod rules;
+mod wasm;
 
 /// Result of URL cleaning operation
-#[derive(Debug, Clone)]
+#[derive(Debug, Tsify, Serialize, Deserialize, Clone)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CleaningResult {
     /// The cleaned URL string
     pub url: String,
@@ -26,7 +30,8 @@ pub struct CleaningResult {
 }
 
 /// Configuration options for URL cleaning
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CleaningOptions {
     /// Whether to skip localhost URLs
     pub skip_localhost: bool,
