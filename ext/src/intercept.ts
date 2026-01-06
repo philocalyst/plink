@@ -70,24 +70,36 @@ function isDataURL(url: string): boolean {
   return url.startsWith('data:');
 }
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+const IS_PRIVATE_IP = /^(?:10|127|172\.(?:1[6-9]|2[0-9]|3[01])|192\.168|169\.254)\./;
+
 /**
  * Check if URL is a localhost/local network URL
  */
 function isLocalURL(url: string): boolean {
   try {
+    // Only parse if it looks like a URL to save overhead on junk strings
+    if (!url.includes('://')) return false;
+
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
-    
-    return (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '::1' ||
-      hostname.endsWith('.local') ||
-      /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
-      /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) ||
-      /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)
-    );
+
+    // The common case
+    if (LOCAL_HOSTS.has(hostname)) return true;
+
+    // Suffix check 
+    if (hostname.endsWith('.local')) return true;
+
+    // Handle IPv6 (only basic check for bracketed local addresses)
+    if (hostname.startsWith('[fe80:')) return true;
+
+    // check private IPV4
+    if (IS_PRIVATE_IP.test(hostname)) return true;
+
+    // If it makes it through all, return false
+    return false;
   } catch {
+    // TODO: Better error
     return false;
   }
 }
