@@ -18,10 +18,11 @@ bitcode = { version = "0.6.6", features = ["serde"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 bincode = { version = "2.0.1", features = ["serde"] }
+phf = { version = "0.13.1", features = ["macros", "serde"] }
 
 [build-dependencies]
 bincode = { version = "2.0.1", features = ["serde"] }
-phf = { version = "0.13.1", features = ["serde"] }
+phf = { version = "0.13.1", features = ["macros", "serde"] }
 lazy-regex = "3.4.2"
 quote = "1.0.42"
 proc-macro2 = "1.0.103"
