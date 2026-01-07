@@ -50,8 +50,12 @@ export component App() {
             <p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
             <ul>
                 <li>
-                  <input class="toggle-state" type="checkbox" name="filtering" id="filtering" />
-                  <label for="filtering">{'Filtering'}</label>
+                  <input class="toggle-state" type="checkbox" name="Filtering" id="Filtering" />
+                  <label for="Filtering">{'Filtering'}</label>
+                </li>
+                <li>
+                  <input class="toggle-state" type="checkbox" name="Statistics" id="Statistics" />
+                  <label for="Statistics">{'Statistics'}</label>
                 </li>
             </ul>
             <div class="progress-container">
