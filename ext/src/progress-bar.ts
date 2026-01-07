@@ -20,14 +20,14 @@ export function createProgressBar({
   const yW = (yellow / total) * 100;
 
   const height = 30;
-  const vWidth = 100;
+  const vWidth = '100%';
   const radius = height / 2;
 
-  const draw = SVG().viewbox(0, 0, vWidth, height);
+  const draw = SVG();
 
   draw.attr('width', '100%');
   draw.attr('height', height);
-  draw.attr('preserveAspectRatio', 'xMidYMid meet');
+  draw.attr('preserveAspectRatio', 'none');
 
   draw.style().addText(`
     @keyframes slide {
@@ -80,21 +80,21 @@ export function createProgressBar({
   const segmentsGroup = draw.group().attr('clip-path', 'url(#pill-clip)');
 
   // Green segment - Starts at 0
-  segmentsGroup.rect(gW, height).attr({
+  segmentsGroup.rect(gW + '%', height).attr({
     x: 0,
     y: 0,
     fill: 'url(#stripe-green)',
   });
 
   // Purple segment - Starts where Green ends
-  segmentsGroup.rect(pW, height).attr({
+  segmentsGroup.rect(pW + '%', height).attr({
     x: gW,
     y: 0,
     fill: 'url(#stripe-purple)',
   });
 
   // Yellow segment - Starts where Purple ends
-  segmentsGroup.rect(yW, height).attr({
+  segmentsGroup.rect(yW + '%', height).attr({
     x: gW + pW,
     y: 0,
     fill: 'url(#stripe-yellow)',
