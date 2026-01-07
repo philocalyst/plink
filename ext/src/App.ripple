@@ -48,12 +48,10 @@ export component App() {
         <div class="card">
             <img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
             <p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
-            <label class="label">
-              <div class="toggle">
-                <input class="toggle-state" type="checkbox" name="check" value="check" />
-                <div class="indicator"></div>
-              </div>
-            </label>
+            <div>
+              <label for="filtering"></label>
+              <input class="toggle-state" type="checkbox" name="filtering" id="filtering" />
+            </div>
             <div class="progress-container">
                 {html getProgressBar(@stats.totalCleaned, @stats.totalBlocked, @stats.encountered)}
             </div>
