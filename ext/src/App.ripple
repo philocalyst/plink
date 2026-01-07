@@ -61,14 +61,13 @@ component StatisticsDisplay({ stats }: { stats: Statistics }) {
     };
     
     <div class="statistics">
+        <div class="progress-container">
+            {html getProgressBar(stats.totalCleaned, stats.totalBlocked, stats.encountered)}
+        </div>
         <div class="stats-grid">
             <StatItem label="Cleaned" value={stats.totalCleaned} color="green" />
             <StatItem label="Blocked" value={stats.totalBlocked} color="yellow" />
             <StatItem label="Encountered" value={stats.encountered} color="purple" />
-        </div>
-        
-        <div class="progress-container">
-            {html getProgressBar(stats.totalCleaned, stats.totalBlocked, stats.encountered)}
         </div>
     </div>
 }
