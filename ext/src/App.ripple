@@ -1,6 +1,13 @@
-import { track, bindValue } from 'ripple';
+import { track, bindChecked, bindNode, effect } from 'ripple';
 import './style.css';
 import { createProgressBar } from './progress-bar.ts';
+
+// Types
+interface Statistics {
+    totalCleaned: number;
+    totalBlocked: number;
+    encountered: number;
+}
 
 // Function to load statistics from background script
 async function loadStatistics(): Promise<Statistics> {
@@ -19,6 +26,7 @@ async function loadStatistics(): Promise<Statistics> {
     }
 }
 
+// Main App Component
 export component App() {
     let count = track(0);
     
@@ -34,7 +42,16 @@ export component App() {
         @stats = data;
     });
     
-    // Progress bar logic based on stats
+    <div class="app">
+        <div class="card">
+            <FilterSettings />
+            <StatisticsDisplay stats={@stats} />
+        </div>
+    </div>
+}
+
+// Statistics Display Component
+component StatisticsDisplay({ stats }: { stats: Statistics }) {
     const getProgressBar = (cleaned: number, blocked: number, encountered: number) => {
         return createProgressBar({
             green: cleaned,
@@ -43,58 +60,62 @@ export component App() {
         });
     };
     
-    <div class="app">
-        <div class="card">
-            <img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
-            <p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
-             <FilterSettings />
-            
-          
-            <div class="progress-container">
-                {html getProgressBar(@stats.totalCleaned, @stats.totalBlocked, @stats.encountered)}
-            </div>
-            <div class="counter">
-                <button onClick={() => @count--}>{'-'}</button>
-                <span class="count">{@count}</span>
-                <button onClick={() => @count++}>{'+'}</button>
-            </div>
-            <div class="links">
-            </div>
-            <p class="info">{'This is a basic Ripple application template.'}</p>
-            <p class="edit-hint">
-                {'Edit '}
-                <code>{'src/App.ripple'}</code>
-                {' to get started.'}
-            </p>
+    <div class="statistics">
+        <div class="stats-grid">
+            <StatItem label="Cleaned" value={stats.totalCleaned} color="green" />
+            <StatItem label="Blocked" value={stats.totalBlocked} color="yellow" />
+            <StatItem label="Encountered" value={stats.encountered} color="purple" />
+        </div>
+        
+        <div class="progress-container">
+            {html getProgressBar(stats.totalCleaned, stats.totalBlocked, stats.encountered)}
         </div>
     </div>
 }
 
-export component FilterSettings() {
-  // You need an individual tracked boolean for each checkbox
-  let isFiltering = track(false);
-  let isDomainBlocking = track(false);
-
-    <ul>
-      <li>
-        <input 
-          class="toggle-state" 
-          type="checkbox" 
-          name="Filtering" 
-          id="Filtering" 
-          {ref bindChecked(isFiltering)} 
-        />
-        <label for="Filtering">{'Filtering'}</label>
-      </li>
-      <li>
-        <input 
-          class="toggle-state" 
-          type="checkbox" 
-          name="Domain Blocking" 
-          id="Domain Blocking" 
-          {ref bindChecked(isDomainBlocking)} 
-        />
-        <label for="Domain Blocking">{'Domain Blocking'}</label>
-      </li>
-    </ul>
+// Individual Stat Item
+component StatItem({ label, value, color }: { label: string; value: number; color: string }) {
+    <div class={`stat-item stat-${color}`}>
+        <div class="stat-label">{label}</div>
+        <div class="stat-value">{value}</div>
+    </div>
 }
+
+// Filter Settings Component
+export component FilterSettings() {
+    let isFiltering = track(false);
+    let isDomainBlocking = track(false);
+    
+    <div class="filter-settings">
+        <h3>{'Settings'}</h3>
+        <ul class="settings-list">
+            <li>
+                <label class="checkbox-label">
+                    <input 
+                        class="toggle-state" 
+                        type="checkbox" 
+                        name="Filtering" 
+                        id="Filtering" 
+                        {ref bindChecked(isFiltering)} 
+                    />
+                    <span>{'Enable Filtering'}</span>
+                </label>
+            </li>
+            <li>
+                <label class="checkbox-label">
+                    <input 
+                        class="toggle-state" 
+                        type="checkbox" 
+                        name="Domain Blocking" 
+                        id="Domain Blocking" 
+                        {ref bindChecked(isDomainBlocking)} 
+                    />
+                    <span>{'Enable Domain Blocking'}</span>
+                </label>
+            </li>
+        </ul>
+    </div>
+}
+
+
+
