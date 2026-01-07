@@ -15,7 +15,7 @@ async function loadStatistics(): Promise<Statistics> {
         return {
             totalCleaned: 0,
             totalBlocked: 0,
-            sessionStart: Date.now()
+            encountered: 0
         };
     }
 }
@@ -27,7 +27,7 @@ export component App() {
     let stats = track<Statistics>({
         totalCleaned: 0,
         totalBlocked: 0,
-        sessionStart: 0
+        encountered: 0
     });
     
     // Load actual values from background script
@@ -36,10 +36,10 @@ export component App() {
     });
     
     // Progress bar logic based on stats
-    const getProgressBar = (cleaned: number, blocked: number) => {
+    const getProgressBar = (cleaned: number, blocked: number, encountered: number) => {
         return createProgressBar({
             green: cleaned,
-            purple: 150, 
+            purple: encountered, 
             yellow: blocked,
         });
     };
@@ -48,8 +48,14 @@ export component App() {
         <div class="card">
             <img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
             <p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
+            <label class="label">
+              <div class="toggle">
+                <input class="toggle-state" type="checkbox" name="check" value="check" />
+                <div class="indicator"></div>
+              </div>
+            </label>
             <div class="progress-container">
-                {html getProgressBar(@stats.totalCleaned, @stats.totalBlocked)}
+                {html getProgressBar(@stats.totalCleaned, @stats.totalBlocked, @stats.encountered)}
             </div>
             <div class="counter">
                 <button onClick={() => @count--}>{'-'}</button>
