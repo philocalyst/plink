@@ -1,4 +1,4 @@
-import { track } from 'ripple';
+import { track, bindValue } from 'ripple';
 import './style.css';
 import { createProgressBar } from './progress-bar.ts';
 
@@ -11,10 +11,9 @@ async function loadStatistics(): Promise<Statistics> {
         return response as Statistics;
     } catch (error) {
         console.error('[Ripple] Failed to load statistics:', error);
-        // Return default values on error
         return {
             totalCleaned: 0,
-            totalBlocked: 0,
+            totalBlocked: 20,
             encountered: 0
         };
     }
@@ -43,21 +42,14 @@ export component App() {
             yellow: blocked,
         });
     };
-
+    
     <div class="app">
         <div class="card">
             <img src="../src/assets/ripple-logo-horizontal.png" alt="Ripple Logo" class="logo" />
             <p class="subtitle">{'The elegant TypeScript UI framework.'}</p>
-            <ul>
-                <li>
-                  <input class="toggle-state" type="checkbox" name="Filtering" id="Filtering" />
-                  <label for="Filtering">{'Filtering'}</label>
-                </li>
-                <li>
-                  <input class="toggle-state" type="checkbox" name="Statistics" id="Statistics" />
-                  <label for="Statistics">{'Statistics'}</label>
-                </li>
-            </ul>
+             <FilterSettings />
+            
+          
             <div class="progress-container">
                 {html getProgressBar(@stats.totalCleaned, @stats.totalBlocked, @stats.encountered)}
             </div>
@@ -67,16 +59,6 @@ export component App() {
                 <button onClick={() => @count++}>{'+'}</button>
             </div>
             <div class="links">
-                <a href="https://www.ripplejs.com/" target="_blank" class="link-btn docs">
-                    {'Docs'}
-                </a>
-                <a
-                    href="https://github.com/Ripple-TS/ripple"
-                    target="_blank"
-                    class="link-btn github"
-                >
-                    {'GitHub'}
-                </a>
             </div>
             <p class="info">{'This is a basic Ripple application template.'}</p>
             <p class="edit-hint">
@@ -86,4 +68,33 @@ export component App() {
             </p>
         </div>
     </div>
+}
+
+export component FilterSettings() {
+  // You need an individual tracked boolean for each checkbox
+  let isFiltering = track(false);
+  let isDomainBlocking = track(false);
+
+    <ul>
+      <li>
+        <input 
+          class="toggle-state" 
+          type="checkbox" 
+          name="Filtering" 
+          id="Filtering" 
+          {ref bindChecked(isFiltering)} 
+        />
+        <label for="Filtering">{'Filtering'}</label>
+      </li>
+      <li>
+        <input 
+          class="toggle-state" 
+          type="checkbox" 
+          name="Domain Blocking" 
+          id="Domain Blocking" 
+          {ref bindChecked(isDomainBlocking)} 
+        />
+        <label for="Domain Blocking">{'Domain Blocking'}</label>
+      </li>
+    </ul>
 }
