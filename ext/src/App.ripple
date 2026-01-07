@@ -61,6 +61,7 @@ component StatisticsDisplay({ stats }: { stats: Statistics }) {
     };
     
     <div class="statistics">
+    <h3>{'Statistics'}</h3>
         <div class="progress-container">
             {html getProgressBar(stats.totalCleaned, stats.totalBlocked, stats.encountered)}
         </div>
@@ -74,10 +75,7 @@ component StatisticsDisplay({ stats }: { stats: Statistics }) {
 
 // Individual Stat Item
 component StatItem({ label, value, color }: { label: string; value: number; color: string }) {
-    <div class={`stat-item stat-${color}`}>
-        <div class="stat-label">{label}</div>
-        <div class="stat-value">{value}</div>
-    </div>
+    <p>{'Total '}{label}{': '}{value}</p>
 }
 
 // Filter Settings Component
@@ -89,27 +87,27 @@ export component FilterSettings() {
         <h3>{'Settings'}</h3>
         <ul class="settings-list">
             <li>
-                <label class="checkbox-label">
-                    <input 
+                                    <input 
                         class="toggle-state" 
                         type="checkbox" 
                         name="Filtering" 
                         id="Filtering" 
                         {ref bindChecked(isFiltering)} 
                     />
-                    <span>{'Enable Filtering'}</span>
+                <label class="checkbox-label">
+                    {'Filtering'}
                 </label>
             </li>
             <li>
-                <label class="checkbox-label">
-                    <input 
+                <input 
                         class="toggle-state" 
                         type="checkbox" 
                         name="Domain Blocking" 
                         id="Domain Blocking" 
                         {ref bindChecked(isDomainBlocking)} 
-                    />
-                    <span>{'Enable Domain Blocking'}</span>
+                />
+                <label class="checkbox-label">
+                    {'Domain Blocking'}
                 </label>
             </li>
         </ul>
