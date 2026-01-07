@@ -105,15 +105,17 @@ code {
 	font-size: 0.88rem;
 }
 
-.label {
+ul li {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+label {
 	display: inline-flex;
 	align-items: center;
 	cursor: pointer;
 	color: inherit;
-}
-
-.label-text {
-	margin-left: 1em;
 }
 
 /* Style the checkbox directly as the toggle */
@@ -158,7 +160,7 @@ code {
 
 .toggle-state:checked::after {
 	transform: translate3d(25%, 0, 0);
-	background: rgba(255, 255, 255, 0.4);
+	background: rgba(255, 255, 255, 0.8);
 }
 
 /* Focus styles - only show on keyboard navigation */
